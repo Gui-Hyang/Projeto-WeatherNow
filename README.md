@@ -7,7 +7,7 @@
 
 /JulioSbto
 
- ### API de Mapeamento e Localização: 
+ ### API de Localização e Mapeamento: 
     Guilherme Vanderlei
 
 /Gui-Hyang
