@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Now: Cadastro</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.css">
+    <style>
+        body {
+            background-image: url('/Img/LoginBackground.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+    </style>   
+</head>
+
+<body>
+
+    <header>
+        <h1>Weather Now</h1>
+    </header>
+
+    <div class="login-container">
+        <h2>Crie sua conta</h2>
+        <form id="register-form">
+            <label for="first-name">Nome:</label>
+            <input type="text" id="first-name" required>
+            <label for="last-name">Sobrenome:</label>
+            <input type="text" id="last-name" required>
+            <label for="username">Usuário:</label>
+            <input type="text" id="username" required>
+            <p id="username-error-message" class="error-message"></p>
+            <label for="email">Email:</label>
+            <input type="email" id="email" required>
+            <p id="email-error-message" class="error-message"></p>
+            <label for="password">Senha:</label>
+            <input type="password" id="password" required>
+            <label for="confirm-password">Confirme sua senha:</label>
+            <input type="password" id="confirm-password" required>
+            <p id="password-match-error-message" class="error-message"></p>
+            <p id="register-error-message" class="error-message"></p>
+            <button type="submit">Cadastrar</button>
+        </form>
+
+        <p id="login-text">Você já tem uma conta? <a href="Login.html">Faça seu login</a></p>
+    </div>
+
+    <script src="js/Registro.js"></script>
+    <script>
+        document.getElementById('login-button').addEventListener('click', function() {
+            window.location.href = 'Login.html';
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Now</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <link rel="stylesheet" href="/css/Styles2.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        body {
+            background-image: url('/Img/AppBackground.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Weather Now</h1>
+        <button id="logout-button">Sair</button>
+    </header>
+
+    <div id="container">
+        <div id="welcome-message"></div>
+        
+        <div id="input-section">
+            <input type="text" id="cep" placeholder="Digite o CEP">
+            <button id="buscar">Buscar</button>
+        </div>
+
+        <div id="loading">Carregando...</div>
+
+
+        <div id="map-container">
+            <div id="map"></div>
+            <div id="endereco" aria-live="polite"></div>
+        </div>
+
+
+        <div id="info-container">
+            <div id="weather" aria-live="polite"></div>
+            <div id="alerts" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <script>
+        const welcomeMessageDiv = document.getElementById('welcome-message');
+        const logoutButton = document.getElementById('logout-button');
+        const cepInput = document.getElementById('cep');
+        const buscarButton = document.getElementById('buscar');
+        const mapDiv = document.getElementById('map');
+        const enderecoDiv = document.getElementById('endereco');
+        const weatherDiv = document.getElementById('weather');
+        const alertsDiv = document.getElementById('alerts');
+        const loadingDiv = document.getElementById('loading');
+        let map;
+        const openWeatherMapAPIKey = 'ba605efc18f1572f61892fe426f18a1a';
+
+        const validateCEP = (cep) => /^[0-9]{5}-?[0-9]{3}$/.test(cep);
+
+        const fetchLocationData = (cep) => {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${cep}&countrycodes=br`;
+            return fetch(url).then(response => response.json());
+        };
+
+        const fetchWeatherData = (lat, lon) => {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${openWeatherMapAPIKey}&units=metric&lang=pt_br`;
+            return fetch(url).then(response => response.json());
+        };
+
+        const fetchWeatherAlerts = (lat, lon) => {
+            const url = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${openWeatherMapAPIKey}&units=metric&lang=pt_br`;
+            return fetch(url).then(response => response.json());
+        };
+
+        const displayWeather = (data) => {
+            if (data && data.weather && data.main && data.wind) {
+                const { weather, main, wind } = data;
+                const description = weather[0].description;
+                const temp = main.temp;
+                const feelsLike = main.feels_like;
+                const windSpeed = wind.speed;
+                weatherDiv.innerHTML = `
+                    <h3>Previsão do Tempo</h3>
+                    <p>Condição: ${description}</p>
+                    <p>Temperatura: ${temp} °C (Sensação térmica: ${feelsLike} °C)</p>
+                    <p>Vento: ${windSpeed} m/s</p>
+                `;
+            } else {
+                weatherDiv.innerHTML = '<p>Não foi possível obter a previsão do tempo.</p>';
+            }
+        };
+
+        const displayAlerts = (data) => {
+            if (data && data.alerts && data.alerts.length > 0) {
+                alertsDiv.innerHTML = '<h3>Alertas Meteorológicos</h3>';
+                data.alerts.forEach(alert => {
+                    alertsDiv.innerHTML += `
+                        <p><strong>${alert.event}</strong>: ${alert.description}</p>
+                    `;
+                });
+            } else {
+                alertsDiv.innerHTML = '<p>Não há alertas meteorológicos no momento.</p>';
+            }
+        };
+
+        const initializeMap = (lat, lng, displayName) => {
+            if (map) {
+                map.remove();
+            }
+
+            mapDiv.innerHTML = '';
+
+            map = L.map('map').setView([lat, lng], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+                subdomains: ['a', 'b', 'c']
+            }).addTo(map);
+
+            L.circleMarker([lat, lng], {
+                radius: 10,
+                color: 'red',
+                fillColor: 'red',
+                fillOpacity: 0.5
+            }).addTo(map);
+
+            enderecoDiv.innerHTML = `Endereço: ${displayName}`;
+
+            fetchWeatherData(lat, lng)
+                .then(displayWeather)
+                .catch(error => {
+                    console.error('Erro ao buscar previsão do tempo:', error);
+                    weatherDiv.innerHTML = '<p>Erro ao buscar previsão do tempo.</p>';
+                });
+
+            fetchWeatherAlerts(lat, lng)
+                .then(displayAlerts)
+                .catch(error => {
+                    console.error('Erro ao buscar alertas meteorológicos:', error);
+                    alertsDiv.innerHTML = '<p>Erro ao buscar alertas meteorológicos.</p>';
+                });
+        };
+
+        const setLoadingState = (isLoading) => {
+            if (isLoading) {
+                loadingDiv.style.display = 'block';
+                buscarButton.disabled = true;
+            } else {
+                loadingDiv.style.display = 'none';
+                buscarButton.disabled = false;
+            }
+        };
+
+        const saveLastCep = (cep) => localStorage.setItem('lastCep', cep);
+
+        const loadLastCep = () => {
+            const lastCep = localStorage.getItem('lastCep');
+            if (lastCep) {
+                cepInput.value = lastCep;
+                buscarButton.click();
+            }
+        };
+
+        const displayWelcomeMessage = () => {
+            const currentUser = JSON.parse(localStorage.getItem('users')).find(user => user.username === localStorage.getItem('currentUser'));
+            if (currentUser) {
+             welcomeMessageDiv.innerHTML = `<p>Bem-vindo(a), ${currentUser.firstName}!</p>`;
+            } else {
+              welcomeMessageDiv.innerHTML = '<p>Bem-vindo(a)!</p>';
+             }
+        };
+
+
+        const handleLogout = () => {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'Login.html';
+        };
+
+        logoutButton.addEventListener('click', handleLogout);
+
+        buscarButton.addEventListener('click', () => {
+            const cep = cepInput.value.trim().replace('-', '').replace(/\s+/g, '');
+
+            if (!validateCEP(cep)) {
+                enderecoDiv.innerHTML = '<p>CEP inválido.</p>';
+                return;
+            }
+
+            setLoadingState(true);
+
+            fetchLocationData(cep)
+                .then(data => {
+                    if (data.length > 0) {
+                        const { lat, lon: lng, display_name: displayName } = data[0];
+                        initializeMap(lat, lng, displayName);
+                        saveLastCep(cep);
+                    } else {
+                        enderecoDiv.innerHTML = '<p>CEP não encontrado.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar dados de localização:', error);
+                    enderecoDiv.innerHTML = '<p>Erro ao buscar dados de localização.</p>';
+                })
+                .finally(() => setLoadingState(false));
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            displayWelcomeMessage();
+            loadLastCep();
+        });
+    </script>
+</body>
+</html>
